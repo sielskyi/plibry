@@ -1,2 +1,2 @@
 # plibry
-PLibry is a Python language library of universal and usefull functions.
+PLibry is a universal and useful library for projects on Python language.
