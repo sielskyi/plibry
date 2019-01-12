@@ -4,8 +4,10 @@
 #
 
 _DAYS_IN_MONTH = [-1, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-_LABLES_OF_MONTHS_EN = ['', 'January', 'February', 'March', 'April', 'June',
+_LABLES_OF_MONTHS_EN = ['', 'January', 'February', 'March', 'April', 'May', 'June',
                         'Jule', 'August', 'September', 'October', 'November', 'December']
+_SHORT_LABLES_OF_MONTHS_EN = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 
 def check_year_is_leap(year):
@@ -34,10 +36,23 @@ def get_month_lable(month):
     return str(_LABLES_OF_MONTHS_EN[month])
 
 
+def get_month_short_lable(month):
+    "Return string of the month lable"
+    assert (month >= 1) and (month <= 12), 'Wrong number of month'
+    return str(_SHORT_LABLES_OF_MONTHS_EN[month])
+
+
 def get_month_by_lable(lable):
     "Return number of month by its lable"
     if lable in _LABLES_OF_MONTHS_EN:
         return _LABLES_OF_MONTHS_EN.index(lable)
+    return 0
+
+
+def get_month_by_short_lable(lable):
+    "Return number of month by its lable"
+    if lable in _SHORT_LABLES_OF_MONTHS_EN:
+        return _SHORT_LABLES_OF_MONTHS_EN.index(lable)
     return 0
 
 
@@ -156,6 +171,38 @@ def get_time_string_formated(form="HH:MM:SS.MSS", hour=0, min=0, sec=0, msec=0):
         timestr += str(msec)
     return timestr
 
+def get_real_from_any(years=0, months=0, days=0, hours=0, mins=0, secs=0, msecs=0):
+    "Get real date-time values counting from any values of arguments"
+    secs += int(msecs / 1000)
+    msecs %= 1000
+    mins += int(secs / 60)
+    secs %= 60
+    hours += int(mins / 60)
+    mins %= 60
+    days += int(hours / 24)
+    hours %= 24
+
+    while True:
+        years += int(months / 12)
+        months %= 12
+        if months == 0:
+            while True:
+                days_in_year = get_days_in_year(years)
+                if days >= days_in_year:
+                    days -= days_in_year
+                    years += 1
+                else:
+                    break
+        days_in_month = get_days_in_month(years, (months + 1))
+        if days >= days_in_month:
+            days -= days_in_month
+            months += 1
+        else:
+            break
+
+    days += 1
+    months += 1
+    return (years, months, days, hours, mins, secs, msecs)
 
 class DateTimeExt:
     "Class of extended functionality for date and time"
@@ -306,40 +353,59 @@ class DateTimeExt:
             self.modify_date_time(msec=msec)
 
     def add_any(self, years=0, months=0, days=0, hours=0, mins=0, secs=0, msecs=0):
-        "add date-time values counting from any values of arguments"
+        "Add date-time values counting from any values of arguments"
         self.set_from_any((self._year + years), (self._month + months - 1), (self._day + days - 1),
                           (self._hour + hours), (self._min + mins), (self._sec + secs), (self._msec + msecs))
 
+    def sub_any(self, years=0, months=0, days=0, hours=0, mins=0, secs=0, msecs=0):
+        "Subtract date-time values counting from any values of arguments"
+        years, months, days, hours, mins, secs, msecs = get_real_from_any(years, months, days, hours, mins, secs, msecs)
+
+        if self._msec < msecs:
+            self._msec += 1000 - msecs
+            secs += 1
+            years, months, days, hours, mins, secs, msecs = get_real_from_any(years, months, days, hours, mins, secs,
+                                                                              msecs)
+        else:
+            self._msec -= msecs
+        if self._sec < secs:
+            self._sec += 60 - secs
+            mins += 1
+            years, months, days, hours, mins, secs, msecs = get_real_from_any(years, months, days, hours, mins, secs,
+                                                                              msecs)
+        else:
+            self._sec -= secs
+        if self._min < mins:
+            self._min += 60 - mins
+            hours += 1
+            years, months, days, hours, mins, secs, msecs = get_real_from_any(years, months, days, hours, mins, secs,
+                                                                              msecs)
+        else:
+            self._min -= mins
+        if self._hour < hours:
+            self._hour += 24 - hours
+            days += 1
+            years, months, days, hours, mins, secs, msecs = get_real_from_any(years, months, days, hours, mins, secs,
+                                                                              msecs)
+        else:
+            self._hour -= hours
+        if self._hour < hours:
+            self._hour += 24 - hours
+            days += 1
+            years, months, days, hours, mins, secs, msecs = get_real_from_any(years, months, days, hours, mins, secs,
+                                                                              msecs)
+        else:
+            self._hour -= hours
+        if self._day < days:
+            self._day += 24 - hours
+            days += 1
+            years, months, days, hours, mins, secs, msecs = get_real_from_any(years, months, days, hours, mins, secs,
+                                                                              msecs)
+        else:
+            self._hour -= hours
+
     def set_from_any(self, years=0, months=0, days=0, hours=0, mins=0, secs=0, msecs=0):
-        "get date-time values counting from any values of arguments"
-        secs += int(msecs / 1000)
-        msecs %= 1000
-        mins += int(secs / 60)
-        secs %= 60
-        hours += int(mins / 60)
-        mins %= 60
-        days += int(hours / 24)
-        hours %= 24
-
-        while True:
-            years += int(months / 12)
-            months %= 12
-            if months == 0:
-                while True:
-                    days_in_year = get_days_in_year(years)
-                    if days >= days_in_year:
-                        days -= days_in_year
-                        years += 1
-                    else:
-                        break
-            days_in_month = get_days_in_month(years, (months + 1))
-            if days >= days_in_month:
-                days -= days_in_month
-                months += 1
-            else:
-                break
-
-        days += 1
-        months += 1
+        "Get date-time values counting from any values of arguments"
+        years, months, days, hours, mins, secs, msecs = get_real_from_any(years, months, days, hours, mins, secs, msecs)
         self.set_date_time(years, months, days, hours, mins, secs, msecs)
 
